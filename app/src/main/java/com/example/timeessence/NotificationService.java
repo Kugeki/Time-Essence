@@ -15,6 +15,8 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
 public class NotificationService extends Service {
+    final String CHANNEL_ID = "ID";
+
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
@@ -30,9 +32,9 @@ public class NotificationService extends Service {
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel("ID", "My channel",
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "Main channel",
                     NotificationManager.IMPORTANCE_HIGH);
-            channel.setDescription("My channel description");
+            channel.setDescription("Отправка уведомлений.");
             channel.enableLights(true);
             channel.setLightColor(Color.RED);
             channel.enableVibration(false);
@@ -41,7 +43,7 @@ public class NotificationService extends Service {
         }
 
         NotificationCompat.Builder builder =
-                new NotificationCompat.Builder(this, "ID")
+                new NotificationCompat.Builder(this, CHANNEL_ID)
                         .setSmallIcon(R.mipmap.ic_launcher)
                         .setContentTitle("Title")
                         .setContentText("Notification text");

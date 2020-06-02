@@ -9,11 +9,27 @@ import android.util.Log;
 public class OnBootReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
-        Log.i("BOOTRECEIVER", "HELLO!");
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(new Intent(context, NotificationService.class));
-        } else {
-            context.startService(new Intent(context, NotificationService.class));
+        if(Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction()))
+        {
+            /*
+            Log.i("BOOTRECEIVER", "HELLO!");
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(new Intent(context, NotificationService.class));
+            } else {
+                //context.startService(new Intent(context, NotificationService.class));
+            }
+             */
+
+            /*
+            Intent demoIntentForBroadcast =
+                    new Intent(context, NotificationRequestsReceiver.class);
+
+            demoIntentForBroadcast
+                    .setAction(NotificationRequestsReceiver.NOTIFICATION_PERFORM);
+
+            context.sendBroadcast(demoIntentForBroadcast);
+             */
         }
+
     }
 }
