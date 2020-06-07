@@ -16,13 +16,13 @@ import java.util.concurrent.TimeUnit;
 public class NotificationRequestsReceiver extends BroadcastReceiver {
 
     public static final String NOTIFICATION_PERFORM = "NOTIFICATION_PERFORM";
-    public static boolean firstLaunch = true;
+    private static final String TAG = NotificationRequestsReceiver.class.getSimpleName();
     private static int sJobId = 1;
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
     public void onReceive(Context context, Intent intent) {
-        switch(intent.getAction()) {
+        switch (intent.getAction()) {
             case NOTIFICATION_PERFORM:
                 scheduleJob(context);
                 break;
@@ -32,16 +32,13 @@ public class NotificationRequestsReceiver extends BroadcastReceiver {
     }
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private void scheduleJob(Context context)
-    {
+    private void scheduleJob(Context context) {
         ComponentName jobService = new ComponentName(context, NotificationJobService.class);
         JobInfo.Builder jobBuilder = new JobInfo.Builder(sJobId++, jobService)
                 .setPeriodic(TimeUnit.MINUTES.toMillis(1));
-                //.setOverrideDeadline(TimeUnit.MINUTES.toMillis(2))
-        // ;
         JobScheduler jobScheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
 
-        Log.i("TAG", "scheduleJob: adding job to scheduler");
+        Log.i(TAG, "scheduleJob: adding job to scheduler");
 
         assert jobScheduler != null;
         jobScheduler.schedule(jobBuilder.build());
