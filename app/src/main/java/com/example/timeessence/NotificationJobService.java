@@ -26,8 +26,6 @@ public class NotificationJobService extends JobService {
     private static final String TAG = NotificationJobService.class.getSimpleName();
 
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("M-d-yyyy");
-
-
     @Override
     public boolean onStartJob(JobParameters params) {
 
@@ -47,15 +45,15 @@ public class NotificationJobService extends JobService {
             hoursCounter = 0;
         }
 
-        List<UsageStats> us = TimeManager.getUsageStatsList(context);
+        List<UsageStats> us = TimeManager.getTrackedAppsStats(context);
         TimeManager.printUsageStats(us);
 
         long trackedAppsTime = TimeManager.getTotalTrackedAppsTime();
         Log.d(TAG, "trackedAppsTime: " +
-                (new SimpleDateFormat("M-d-yyyy HH:mm:ss")).format(trackedAppsTime));
+                TimeUnit.MILLISECONDS.toMinutes(trackedAppsTime));
         if (TimeUnit.MILLISECONDS.toHours(trackedAppsTime) != hoursCounter) {
-            String notificationTitle = "Title";
-            String notificationText = "Notification text";
+            String notificationTitle = "Time Essence";
+            String notificationText = MotivationTextRepository.get(context);
             createNotification(notificationTitle, notificationText);
 
             hoursCounter++;
@@ -70,7 +68,7 @@ public class NotificationJobService extends JobService {
         return false;
     }
 
-    private void createNotification(String notificationTitle, String notificationText) {
+    private void createNotification(String title, String text) {
         Log.d(TAG, "Notifying");
         NotificationManager notificationManager =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
@@ -84,8 +82,9 @@ public class NotificationJobService extends JobService {
         NotificationCompat.Builder builder =
                 new NotificationCompat.Builder(this, channelId)
                         .setSmallIcon(R.mipmap.ic_launcher)
-                        .setContentTitle(notificationTitle)
-                        .setContentText(notificationText);
+                        .setContentTitle(title)
+                        .setContentText(text)
+                        .setStyle(new NotificationCompat.BigTextStyle().bigText(text));
 
         Notification notification = builder.build();
 
@@ -93,12 +92,12 @@ public class NotificationJobService extends JobService {
         notificationManager.notify(1, notification);
     }
 
-    private void createNotificationChannel(NotificationManager notificationManager, String channelId, String channelName, String channelDescription) {
+    private void createNotificationChannel(NotificationManager notificationManager, String channelId, String name, String description) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(channelId, channelName,
+            NotificationChannel channel = new NotificationChannel(channelId, name,
                     NotificationManager.IMPORTANCE_HIGH);
 
-            channel.setDescription(channelDescription);
+            channel.setDescription(description);
             channel.enableLights(true);
             channel.setLightColor(Color.RED);
             channel.enableVibration(false);

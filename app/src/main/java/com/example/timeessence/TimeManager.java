@@ -22,7 +22,7 @@ public class TimeManager {
             "com.perm.kate_new_6", "com.android.chrome"
     };
 
-    private static long totalTrackedAppsTime;
+    private static long totalTrackedAppsTime = 0;
 
     public static long getTotalTrackedAppsTime() {
         return totalTrackedAppsTime;
@@ -31,17 +31,18 @@ public class TimeManager {
     public static List<UsageStats> getUsageStatsList(Context context) {
         UsageStatsManager usm = getUsageStatsManager(context);
         Calendar calendar = Calendar.getInstance();
-        long endTime = calendar.getTimeInMillis();
         calendar.set(Calendar.HOUR_OF_DAY, 0);
         calendar.set(Calendar.MINUTE, 0);
         calendar.set(Calendar.SECOND, 0);
         long startTime = calendar.getTimeInMillis();
+        calendar.add(Calendar.DAY_OF_YEAR, 1);
+        long endTime = calendar.getTimeInMillis();
 
         Log.d(TAG, "Range start:" + dateFormat.format(startTime));
         Log.d(TAG, "Range end:" + dateFormat.format(endTime));
 
         assert usm != null;
-        List<UsageStats> usageStatsList = usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime);
+        List<UsageStats> usageStatsList = usm.queryUsageStats(UsageStatsManager.INTERVAL_BEST, startTime, endTime);
         return usageStatsList;
     }
 

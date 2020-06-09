@@ -6,11 +6,9 @@ import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
 import android.util.Log;
 
-import androidx.annotation.RequiresApi;
-
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 public class NotificationRequestsReceiver extends BroadcastReceiver {
@@ -19,19 +17,15 @@ public class NotificationRequestsReceiver extends BroadcastReceiver {
     private static final String TAG = NotificationRequestsReceiver.class.getSimpleName();
     private static int sJobId = 1;
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     @Override
     public void onReceive(Context context, Intent intent) {
-        switch (intent.getAction()) {
-            case NOTIFICATION_PERFORM:
-                scheduleJob(context);
-                break;
-            default:
-                throw new IllegalArgumentException("Unknown action.");
+        if (NOTIFICATION_PERFORM.equals(Objects.requireNonNull(intent.getAction()))) {
+            scheduleJob(context);
+        } else {
+            throw new IllegalArgumentException("Unknown action.");
         }
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private void scheduleJob(Context context) {
         ComponentName jobService = new ComponentName(context, NotificationJobService.class);
         JobInfo.Builder jobBuilder = new JobInfo.Builder(sJobId++, jobService)

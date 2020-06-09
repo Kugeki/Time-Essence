@@ -8,11 +8,11 @@ public class OnBootReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         if (Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) {
-            Intent demoIntentForBroadcast =
+            Intent intentForBroadcast =
                     new Intent(context, NotificationRequestsReceiver.class);
-            demoIntentForBroadcast
+            intentForBroadcast
                     .setAction(NotificationRequestsReceiver.NOTIFICATION_PERFORM);
-            context.sendBroadcast(demoIntentForBroadcast);
+            context.sendBroadcast(intentForBroadcast);
         }
 
     }
