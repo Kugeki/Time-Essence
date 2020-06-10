@@ -1,15 +1,17 @@
 package com.example.timeessence;
 
+import android.app.usage.UsageEvents;
 import android.app.usage.UsageStats;
 import android.app.usage.UsageStatsManager;
 import android.content.Context;
 import android.util.Log;
 
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 public class TimeManager {
@@ -28,8 +30,28 @@ public class TimeManager {
         return totalTrackedAppsTime;
     }
 
-    public static List<UsageStats> getUsageStatsList(Context context) {
+    public static List<UsageStats> getUsageStatsList(Context context, long startTime, long endTime) {
         UsageStatsManager usm = getUsageStatsManager(context);
+
+        Log.d(TAG, "Range start:" + dateFormat.format(startTime));
+        Log.d(TAG, "Range end:" + dateFormat.format(endTime));
+
+        assert usm != null;
+        return usm.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime);
+    }
+
+    public static void printUsageStats(List<UsageStats> usageStatsList) {
+        for (UsageStats u : usageStatsList) {
+            if (u.getTotalTimeInForeground() != 0)
+                Log.d(TAG, "Pkg: " + u.getPackageName() + "\t" + "ForegroundTime: "
+                        + TimeUnit.MILLISECONDS.toMinutes(u.getTotalTimeInForeground()));
+        }
+    }
+
+    public static HashMap<String, AppUsageInfo> getStats(Context context) {
+        UsageStatsManager usm = getUsageStatsManager(context);
+        totalTrackedAppsTime = 0;
+
         Calendar calendar = Calendar.getInstance();
         calendar.set(Calendar.HOUR_OF_DAY, 0);
         calendar.set(Calendar.MINUTE, 0);
@@ -41,35 +63,66 @@ public class TimeManager {
         Log.d(TAG, "Range start:" + dateFormat.format(startTime));
         Log.d(TAG, "Range end:" + dateFormat.format(endTime));
 
-        assert usm != null;
-        List<UsageStats> usageStatsList = usm.queryUsageStats(UsageStatsManager.INTERVAL_BEST, startTime, endTime);
-        return usageStatsList;
-    }
+        UsageEvents uEvents = usm.queryEvents(startTime, endTime);
+        HashMap<String, AppUsageInfo> map = new HashMap<>();
 
-    public static void printUsageStats(List<UsageStats> usageStatsList) {
-        for (UsageStats u : usageStatsList) {
-            if (u.getTotalTimeInForeground() != 0)
-                Log.d(TAG, "Pkg: " + u.getPackageName() + "\t" + "ForegroundTime: "
-                        + TimeUnit.MILLISECONDS.toMinutes(u.getTotalTimeInForeground()));
-        }
-    }
+        boolean firstEvent = true;
+        UsageEvents.Event previousE = new UsageEvents.Event();
+        while (uEvents.hasNextEvent()) {
+            UsageEvents.Event e = new UsageEvents.Event();
+            uEvents.getNextEvent(e);
+            String pkgName = e.getPackageName();
 
-    public static List<UsageStats> getTrackedAppsStats(Context context) {
-        List<UsageStats> trackedStats = new ArrayList<UsageStats>();
-        totalTrackedAppsTime = 0;
-        for (UsageStats u : getUsageStatsList(context)) {
-            String pkgName = u.getPackageName();
-
-            if (Arrays.asList(trackedApps).contains(pkgName)) {
-                trackedStats.add(u);
-                totalTrackedAppsTime += u.getTotalTimeInForeground();
+            if (!Arrays.asList(trackedApps).contains(pkgName)) {
+                continue;
             }
+
+            Log.d(TAG, "Event: " + e.getPackageName() + "\t" + dateFormat.format(e.getTimeStamp()));
+
+            if (map.get(pkgName) == null)
+                map.put(pkgName, new AppUsageInfo(pkgName));
+
+            if (firstEvent) {
+                previousE = e;
+                firstEvent = false;
+                continue;
+            }
+
+            boolean pForeground = previousE.getEventType() == UsageEvents.Event.MOVE_TO_FOREGROUND;
+            boolean background = e.getEventType() == UsageEvents.Event.MOVE_TO_BACKGROUND;
+
+            if (pForeground && background && e.getClassName().equals(previousE.getClassName())) {
+                long diff = e.getTimeStamp() - previousE.getTimeStamp();
+                Objects.requireNonNull(map.get(pkgName)).timeInForeground += diff;
+                totalTrackedAppsTime += diff;
+            }
+
+            previousE = e;
         }
 
-        return trackedStats;
+        return map;
+
     }
 
     private static UsageStatsManager getUsageStatsManager(Context context) {
         return (UsageStatsManager) context.getSystemService(Context.USAGE_STATS_SERVICE);
+    }
+}
+
+class AppUsageInfo {
+    String packageName;
+    long timeInForeground;
+
+    AppUsageInfo(String pkgName) {
+        this.packageName = pkgName;
+        this.timeInForeground = 0;
+    }
+
+    public String getPackageName() {
+        return packageName;
+    }
+
+    public long getTimeInForeground() {
+        return timeInForeground;
     }
 }

@@ -1,6 +1,5 @@
 package com.example.timeessence;
 
-import android.app.usage.UsageStats;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -17,8 +16,9 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
-import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity {
@@ -31,18 +31,13 @@ public class MainActivity extends AppCompatActivity {
 
         Context context = getApplicationContext();
 
-        if (TimeManager.getUsageStatsList(this).isEmpty()) {
-            Toast.makeText(context, getString(R.string.require_text), Toast.LENGTH_LONG).show();
-            Intent intent = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS);
-            startActivity(intent);
-        }
+        checkOnPermissions(context);
 
         updateUsageStatsList(context);
 
         SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(context);
         checkOnFirstLaunch(context, pref);
     }
-
 
     @Override
     protected void onResume() {
@@ -54,16 +49,27 @@ public class MainActivity extends AppCompatActivity {
         updateUsageStatsList(context);
     }
 
+    private void checkOnPermissions(Context context) {
+        Calendar calendar = Calendar.getInstance();
+        long endTime = calendar.getTimeInMillis();
+        calendar.add(Calendar.YEAR, -1);
+        long startTime = calendar.getTimeInMillis();
+        if (TimeManager.getUsageStatsList(this, startTime, endTime).isEmpty()) {
+            Toast.makeText(context, getString(R.string.require_text), Toast.LENGTH_LONG).show();
+            Intent intent = new Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS);
+            startActivity(intent);
+        }
+    }
+
     private void updateUsageStatsList(Context context) {
-        List<UsageStats> us = TimeManager.getTrackedAppsStats(context);
-        TimeManager.printUsageStats(us);
-
         PackageManager pm = context.getPackageManager();
-
         ArrayList<HashMap<String, String>> appsInfo = new ArrayList<>();
-        HashMap<String, String> map;
 
-        for (UsageStats u : us) {
+        HashMap<String, AppUsageInfo> trackedStats = TimeManager.getStats(context);
+
+        HashMap<String, String> map;
+        for (Map.Entry<String, AppUsageInfo> entry : trackedStats.entrySet()) {
+            AppUsageInfo u = entry.getValue();
             map = new HashMap<>();
             ApplicationInfo ai = null;
 
@@ -72,9 +78,17 @@ public class MainActivity extends AppCompatActivity {
             } catch (PackageManager.NameNotFoundException e) {
                 e.printStackTrace();
             }
+
             String appName = (String) (ai != null ? pm.getApplicationLabel(ai) : "(unknown)");
             map.put("name", appName);
-            map.put("time", NumeralsEndingConverter.convertMinutes(TimeUnit.MILLISECONDS.toMinutes(u.getTotalTimeInForeground())));
+            map.put("time", NumeralsEndingConverter.convertMinutes(TimeUnit.MILLISECONDS.toMinutes(u.getTimeInForeground())));
+            appsInfo.add(map);
+        }
+
+        if (appsInfo.size() == 0) {
+            map = new HashMap<>();
+            map.put("name", getString(R.string.lack_tracked_apps_text));
+            map.put("time", "");
             appsInfo.add(map);
         }
 
